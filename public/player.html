@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DistriQuiz - Player</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>DistriQuiz</h1>
+      <p>Room: <span id="room-code-display">---</span> | Welcome, <span id="player-name-display">Player</span></p>
+    </header>
+    <main>
+      <section id="waiting-area">
+        <h2>Waiting for the host to start...</h2>
+      </section>
+      <section id="question-area" style="display:none;">
+        <div id="timer-bar">
+          <span id="timer-display">15</span>s
+        </div>
+        <h2 id="question-text">Question</h2>
+        <div id="dfs-asset-area" style="display:none;">
+          <img id="dfs-asset-img" alt="Quiz asset" />
+        </div>
+        <div id="result-overlay" style="display:none;"></div>
+        <div class="options-grid">
+          <button class="option-btn" data-option="A">A</button>
+          <button class="option-btn" data-option="B">B</button>
+          <button class="option-btn" data-option="C">C</button>
+          <button class="option-btn" data-option="D">D</button>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/client.js"></script>
+</body>
+</html>

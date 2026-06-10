@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DistriQuiz - Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>DistriQuiz - Admin</h1>
+      <p>Manage quiz catalogs</p>
+    </header>
+    <main>
+      <div class="card" id="create-quiz-card">
+        <h2>Create New Quiz</h2>
+        <form id="create-quiz-form">
+          <input type="text" id="quiz-title" placeholder="Quiz Title" required>
+          <button type="submit" class="btn">Create Quiz</button>
+        </form>
+        <p id="create-quiz-msg" class="form-msg"></p>
+      </div>
+
+      <div class="card" id="quiz-list-card">
+        <h2>All Quizzes</h2>
+        <ul id="quiz-list" class="item-list">
+          <li class="empty">Loading...</li>
+        </ul>
+      </div>
+
+      <div class="card" id="add-question-card" style="display:none;">
+        <h2>Add Question to: <span id="selected-quiz-title"></span></h2>
+        <form id="add-question-form">
+          <input type="hidden" id="question-quiz-id">
+          <input type="text" id="question-text" placeholder="Question text" required>
+          <div class="option-row">
+            <input type="text" id="option-a" placeholder="Option A" required>
+            <input type="text" id="option-b" placeholder="Option B" required>
+          </div>
+          <div class="option-row">
+            <input type="text" id="option-c" placeholder="Option C" required>
+            <input type="text" id="option-d" placeholder="Option D" required>
+          </div>
+          <select id="correct-option" required>
+            <option value="">Correct option</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+          <button type="submit" class="btn">Add Question</button>
+        </form>
+        <p id="add-question-msg" class="form-msg"></p>
+      </div>
+    </main>
+  </div>
+  <script>
+    const API = "/api/quizzes";
+
+    async function loadQuizzes() {
+      const list = document.getElementById("quiz-list");
+      list.innerHTML = "<li class='empty'>Loading...</li>";
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const quizzes = await res.json();
+        if (quizzes.length === 0) {
+          list.innerHTML = "<li class='empty'>No quizzes yet</li>";
+        } else {
+          list.innerHTML = "";
+          quizzes.forEach((q) => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+              <strong>${escapeHtml(q.title)}</strong>
+              <span class="q-count">(${q.question_count} questions)</span>
+              <button class="btn-small add-q-btn" data-id="${q.id}" data-title="${escapeHtml(q.title)}">+ Question</button>
+              <button class="btn-small btn-danger delete-btn" data-id="${q.id}">Delete</button>
+            `;
+            list.appendChild(li);
+          });
+          document.querySelectorAll(".add-q-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const quizId = btn.dataset.id;
+              const title = btn.dataset.title;
+              document.getElementById("selected-quiz-title").textContent = title;
+              document.getElementById("question-quiz-id").value = quizId;
+              document.getElementById("add-question-card").style.display = "block";
+            });
+          });
+          document.querySelectorAll(".delete-btn").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              if (!confirm("Delete this quiz and all its questions?")) return;
+              const id = btn.dataset.id;
+              const res = await fetch(API + "/" + id, { method: "DELETE" });
+              if (res.ok) {
+                loadQuizzes();
+              } else {
+                alert("Failed to delete");
+              }
+            });
+          });
+        }
+      } catch (err) {
+        list.innerHTML = "<li class='empty'>Error loading quizzes</li>";
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    document.getElementById("create-quiz-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("quiz-title").value.trim();
+      const msg = document.getElementById("create-quiz-msg");
+      if (!title) return;
+      try {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        });
+        if (res.ok) {
+          msg.textContent = "Quiz created!";
+          msg.className = "form-msg success";
+          document.getElementById("quiz-title").value = "";
+          loadQuizzes();
+        } else {
+          const err = await res.json();
+          msg.textContent = err.error;
+          msg.className = "form-msg error";
+        }
+      } catch {
+        msg.textContent = "Network error";
+        msg.className = "form-msg error";
+      }
+    });
+
+    document.getElementById("add-question-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const quizId = document.getElementById("question-quiz-id").value;
+      const questionText = document.getElementById("question-text").value.trim();
+      const optionA = document.getElementById("option-a").value.trim();
+      const optionB = document.getElementById("option-b").value.trim();
+      const optionC = document.getElementById("option-c").value.trim();
+      const optionD = document.getElementById("option-d").value.trim();
+      const correctOption = document.getElementById("correct-option").value;
+      const msg = document.getElementById("add-question-msg");
+
+      if (!questionText || !optionA || !optionB || !optionC || !optionD || !correctOption) {
+        msg.textContent = "All fields required";
+        msg.className = "form-msg error";
+        return;
+      }
+
+      try {
+        const res = await fetch(API + "/" + quizId + "/questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionText, optionA, optionB, optionC, optionD, correctOption }),
+        });
+        if (res.ok) {
+          msg.textContent = "Question added!";
+          msg.className = "form-msg success";
+          document.getElementById("question-text").value = "";
+          document.getElementById("option-a").value = "";
+          document.getElementById("option-b").value = "";
+          document.getElementById("option-c").value = "";
+          document.getElementById("option-d").value = "";
+          document.getElementById("correct-option").value = "";
+          loadQuizzes();
+        } else {
+          const err = await res.json();
+          msg.textContent = err.error;
+          msg.className = "form-msg error";
+        }
+      } catch {
+        msg.textContent = "Network error";
+        msg.className = "form-msg error";
+      }
+    });
+
+    loadQuizzes();
+  </script>
+</body>
+</html>

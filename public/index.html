@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DistriQuiz - Home</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>DistriQuiz</h1>
+      <p>Real-Time Multiplayer Quiz</p>
+    </header>
+    <main class="cards">
+      <div class="card host-card">
+        <h2>Create Game</h2>
+        <p>Host a new quiz for players to join.</p>
+        <a href="/host.html" class="btn" id="create-game-btn">Create Game</a>
+      </div>
+      <div class="card join-card">
+        <h2>Join Game</h2>
+        <p>Enter a room code to play.</p>
+        <form id="join-form">
+          <input type="text" id="room-code" placeholder="Room Code" maxlength="4" required>
+          <input type="text" id="player-name" placeholder="Your Name" required>
+          <p id="join-error" class="error-msg"></p>
+          <button type="submit" class="btn">Join</button>
+        </form>
+        <div id="active-rooms-container" style="margin-top:1rem;display:none;">
+          <h3>Open Rooms</h3>
+          <div id="room-badges"></div>
+        </div>
+      </div>
+    </main>
+    <footer class="footer-link">
+      <a href="/admin.html">Admin Panel</a>
+    </footer>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/client.js"></script>
+  <script>
+    const roomCodeInput = document.getElementById("room-code");
+    const roomBadges = document.getElementById("room-badges");
+    const activeContainer = document.getElementById("active-rooms-container");
+
+    async function fetchActiveRooms() {
+      try {
+        const res = await fetch("/api/active-rooms");
+        const rooms = await res.json();
+        if (rooms.length > 0) {
+          activeContainer.style.display = "block";
+          roomBadges.innerHTML = rooms.map(r =>
+            `<span class="room-badge" data-code="${r.roomCode}">${r.roomCode}</span>`
+          ).join(" ");
+          roomBadges.querySelectorAll(".room-badge").forEach(badge => {
+            badge.addEventListener("click", () => {
+              roomCodeInput.value = badge.dataset.code;
+            });
+          });
+        } else {
+          activeContainer.style.display = "none";
+        }
+      } catch { /* ignore */ }
+    }
+
+    fetchActiveRooms();
+    setInterval(fetchActiveRooms, 5000);
+  </script>
+</body>
+</html>
